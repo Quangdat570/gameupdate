@@ -33,18 +33,42 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-
+import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
 
 
 import { AiOutlineMenu } from 'react-icons/ai'
 
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { app } from '../../../lib/firebase'
+import { useDispatch, useSelector } from "react-redux";
+import { selectUser, setUser } from "../../../store/auth.slice";
 
 
 export default function Header() {
   const logSuccess = () => toast.success("Login successfully");
 
-  
+  const dispatch = useDispatch();
+  const user = useSelector(selectUser);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  useEffect(() => {
+      auth.onAuthStateChanged((auth, error) => {
+          if (auth && !user) {
+              dispatch(
+                  setUser({
+                      accessToken: auth.accessToken,
+                      uid: auth.uid,
+                      displayName: auth.displayName,
+                      email: auth.email,
+                  })
+              );
+          } else {
+              dispatch(setUser(null));
+          }
+      });
+  }, []);
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [anchorAuth, setanchorAuth] = useState(null);
@@ -102,7 +126,7 @@ export default function Header() {
           <ListItem key={text} disablePadding>
             <ListItemButton>
               <ListItemIcon>
-               
+                {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
               </ListItemIcon>
               <ListItemText primary={text} />
             </ListItemButton>
@@ -172,7 +196,47 @@ export default function Header() {
         </div>
         <div className='search d-flex '>
           <div>
-         
+          {!auth.currentUser ? (
+                                    // <Button
+                                    //     onClick={() => {
+                                    //         signInWithPopup(
+                                    //             auth,
+                                    //             provider
+                                    //         ).catch((err) => {
+                                    //             console.error(err);
+                                    //         });
+                                    //     }}
+                                    // >
+                                    //     Signin
+                                    // </Button>
+                                    <div onClick={() => {
+                                      signInWithPopup(auth, provider)
+                                        .then(() => {
+                                          if (auth.currentUser) {
+                                            toast.success(`Login successfully`, {
+                                              position: "top-right",
+                                              autoClose: 5000,
+                                              hideProgressBar: false,
+                                              closeOnClick: true,
+                                              pauseOnHover: true,
+                                              draggable: true,
+                                              progress: undefined,
+                                              theme: "light",
+                                            });
+                                            router.push("/");
+                                          }
+                                        })
+                                        .catch((err) => console.error(err));
+                                    }} >Đăng nhập</div>
+                                ) : (
+                                    <div>
+                                        {auth.currentUser.displayName}{" "}
+                                        <Button onClick={() => auth.signOut()}>
+                                            Đăng xuất
+                                        </Button>
+                                    </div>
+                                )}
+           
           </div>
           <div count={0} className={styles.iconCart}>
           <Link href='/cart' className="link">
